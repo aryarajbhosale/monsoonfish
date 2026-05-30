@@ -1,0 +1,561 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Logo Processing Service</title>
+    <style>
+        *,
+        *::before,
+        *::after {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        
+         :root {
+            --bg: #f5f6f8;
+            --surface: #ffffff;
+            --border: #e2e5ea;
+            --text-primary: #1a1d23;
+            --text-secondary: #6b7280;
+            --accent: #2563eb;
+            --accent-hover: #1d4ed8;
+            --success: #16a34a;
+            --error: #dc2626;
+            --warning: #d97706;
+            --radius: 10px;
+            --shadow: 0 1px 4px rgba(0, 0, 0, .08), 0 4px 16px rgba(0, 0, 0, .06);
+        }
+        
+        body {
+            background: var(--bg);
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            color: var(--text-primary);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 40px 16px 64px;
+        }
+        
+        header {
+            text-align: center;
+            margin-bottom: 40px;
+            animation: fadeUp 0.8s ease;
+        }
+        
+        header h1 {
+            font-size: 2rem;
+            font-weight: 700;
+            letter-spacing: -0.5px;
+            background: linear-gradient( 90deg, #2563eb, #4f46e5);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        
+        header p {
+            margin-top: 8px;
+            color: var(--text-secondary);
+            font-size: 1rem;
+        }
+        
+        .card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            padding: 32px;
+            width: 100%;
+            max-width: 620px;
+        }
+        
+        .drop-zone {
+            border: 2px dashed var(--border);
+            border-radius: var(--radius);
+            padding: 40px 24px;
+            text-align: center;
+            cursor: pointer;
+            transition: border-color 0.2s, background 0.2s;
+            position: relative;
+        }
+        
+        .drop-zone:hover,
+        .drop-zone.dragover {
+            border-color: var(--accent);
+            background: #eff6ff;
+        }
+        
+        .drop-zone input[type="file"] {
+            position: absolute;
+            inset: 0;
+            opacity: 0;
+            cursor: pointer;
+        }
+        
+        .drop-icon {
+            width: 48px;
+            height: 48px;
+            margin: 0 auto 12px;
+            color: var(--text-secondary);
+        }
+        
+        .drop-zone .drop-label {
+            font-size: 0.95rem;
+            color: var(--text-secondary);
+        }
+        
+        .drop-zone .drop-label strong {
+            color: var(--accent);
+        }
+        
+        .drop-zone .drop-hint {
+            margin-top: 6px;
+            font-size: 0.8rem;
+            color: #9ca3af;
+        }
+        
+        #file-name {
+            margin-top: 12px;
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+            min-height: 20px;
+            text-align: center;
+        }
+        
+        #preview-original {
+            margin-top: 16px;
+            display: none;
+            text-align: center;
+        }
+        
+        #preview-original img {
+            max-height: 160px;
+            max-width: 100%;
+            border-radius: 6px;
+            border: 1px solid var(--border);
+            object-fit: contain;
+        }
+        
+        #preview-original p {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            margin-top: 6px;
+        }
+        
+        .btn {
+            display: block;
+            width: 100%;
+            margin-top: 20px;
+            padding: 12px 0;
+            background: var(--accent);
+            color: #fff;
+            font-size: 1rem;
+            font-weight: 600;
+            border: none;
+            border-radius: var(--radius);
+            cursor: pointer;
+            transition: background 0.15s, transform 0.1s;
+        }
+        
+        .btn:hover:not(:disabled) {
+            background: var(--accent-hover);
+            box-shadow: 0 0 20px rgba(37, 99, 235, 0.35);
+        }
+        
+        .btn:active:not(:disabled) {
+            transform: scale(0.98);
+        }
+        
+        .btn:disabled {
+            opacity: 0.55;
+            cursor: not-allowed;
+        }
+        
+        #status-bar {
+            margin-top: 16px;
+            padding: 12px 16px;
+            border-radius: 8px;
+            font-size: 0.875rem;
+            display: none;
+            align-items: flex-start;
+            gap: 10px;
+        }
+        
+        #status-bar.info {
+            background: #eff6ff;
+            color: #1d4ed8;
+            border: 1px solid #bfdbfe;
+        }
+        
+        #status-bar.success {
+            background: #f0fdf4;
+            color: var(--success);
+            border: 1px solid #bbf7d0;
+        }
+        
+        #status-bar.error {
+            background: #fef2f2;
+            color: var(--error);
+            border: 1px solid #fecaca;
+        }
+        
+        #status-bar .icon {
+            flex-shrink: 0;
+            margin-top: 1px;
+        }
+        
+        .spinner {
+            width: 18px;
+            height: 18px;
+            border: 2.5px solid currentColor;
+            border-top-color: transparent;
+            border-radius: 50%;
+            animation: spin 0.7s linear infinite;
+            flex-shrink: 0;
+        }
+        
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+        
+        @keyframes fadeUp {
+            from {
+                opacity: 0;
+                transform: translateY(25px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        @keyframes revealResults {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .results-section {
+            margin-top: 32px;
+            display: none;
+        }
+        
+        .show-results {
+            animation: revealResults 0.6s ease;
+        }
+        
+        .results-section h2 {
+            font-size: 1rem;
+            font-weight: 600;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 16px;
+        }
+        
+        .previews-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 16px;
+        }
+        
+        @media (max-width: 480px) {
+            .previews-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+        
+        .preview-card {
+            background: var(--bg);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            overflow: hidden;
+            text-align: center;
+            transition: transform 0.25s ease, box-shadow 0.25s ease;
+        }
+        
+        .preview-card:hover {
+            transform: translateY(-8px);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.12);
+        }
+        
+        .preview-card .img-wrap {
+            background: #e5e7eb;
+            padding: 12px;
+            min-height: 120px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .preview-card img {
+            max-width: 100%;
+            max-height: 110px;
+            object-fit: contain;
+        }
+        
+        .preview-card .card-footer {
+            padding: 10px 12px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        
+        .preview-card .card-label {
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+        
+        .preview-card a.dl-btn {
+            font-size: 0.75rem;
+            color: var(--accent);
+            text-decoration: none;
+            font-weight: 500;
+            padding: 4px 8px;
+            border: 1px solid var(--accent);
+            border-radius: 5px;
+            transition: background 0.15s, color 0.15s;
+        }
+        
+        .preview-card a.dl-btn:hover {
+            background: var(--accent);
+            color: #fff;
+        }
+        
+        .email-badge {
+            margin-top: 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 14px;
+            border-radius: 8px;
+            font-size: 0.875rem;
+            font-weight: 500;
+        }
+        
+        .email-badge.sent {
+            background: #f0fdf4;
+            color: var(--success);
+            border: 1px solid #bbf7d0;
+        }
+        
+        .email-badge.failed {
+            background: #fef2f2;
+            color: var(--error);
+            border: 1px solid #fecaca;
+        }
+    </style>
+</head>
+
+<body>
+
+    <header>
+        <h1>Logo Processing Service</h1>
+        <p>Upload a logo to generate silhouette, border, and grayscale versions.</p>
+    </header>
+
+    <div class="card">
+        <div class="drop-zone" id="drop-zone">
+            <input type="file" id="file-input" accept=".png,.jpg,.jpeg" />
+            <svg class="drop-icon" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round"
+        d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5"/>
+    </svg>
+            <p class="drop-label"><strong>Click to upload</strong> or drag and drop</p>
+            <p class="drop-hint">PNG, JPG, JPEG &mdash; Max 5 MB</p>
+        </div>
+
+        <div id="file-name"></div>
+
+        <div id="preview-original">
+            <img id="original-img" src="" alt="Original preview" />
+            <p>Original upload</p>
+        </div>
+
+        <button class="btn" id="process-btn" disabled>Process Image</button>
+
+        <div id="status-bar" role="alert"></div>
+    </div>
+
+    <div class="card results-section" id="results-section">
+        <h2>Generated Outputs</h2>
+        <div class="previews-grid" id="previews-grid"></div>
+        <div class="email-badge" id="email-badge"></div>
+    </div>
+
+    <script>
+        const fileInput = document.getElementById('file-input');
+        const dropZone = document.getElementById('drop-zone');
+        const fileNameEl = document.getElementById('file-name');
+        const processBtn = document.getElementById('process-btn');
+        const statusBar = document.getElementById('status-bar');
+        const resultsSection = document.getElementById('results-section');
+        const previewsGrid = document.getElementById('previews-grid');
+        const emailBadge = document.getElementById('email-badge');
+        const previewOriginal = document.getElementById('preview-original');
+        const originalImg = document.getElementById('original-img');
+
+        let selectedFile = null;
+
+        dropZone.addEventListener('dragover', e => {
+            e.preventDefault();
+            dropZone.classList.add('dragover');
+        });
+        dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragover'));
+        dropZone.addEventListener('drop', e => {
+            e.preventDefault();
+            dropZone.classList.remove('dragover');
+            const file = e.dataTransfer.files[0];
+            if (file) setFile(file);
+        });
+
+        fileInput.addEventListener('change', () => {
+            if (fileInput.files[0]) setFile(fileInput.files[0]);
+        });
+
+        function setFile(file) {
+            selectedFile = file;
+            fileNameEl.textContent = `Selected: ${file.name} (${(file.size / 1024).toFixed(1)} KB)`;
+            processBtn.disabled = false;
+            clearStatus();
+            resultsSection.style.display = 'none';
+
+            const reader = new FileReader();
+            reader.onload = e => {
+                originalImg.src = e.target.result;
+                previewOriginal.style.display = 'block';
+            };
+            reader.readAsDataURL(file);
+        }
+
+        function showStatus(type, html) {
+            statusBar.className = type;
+            statusBar.style.display = 'flex';
+            statusBar.innerHTML = html;
+        }
+
+        function clearStatus() {
+            statusBar.style.display = 'none';
+            statusBar.className = '';
+            statusBar.innerHTML = '';
+        }
+
+        processBtn.addEventListener('click', async() => {
+            if (!selectedFile) return;
+
+            processBtn.disabled = true;
+            clearStatus();
+            resultsSection.style.display = 'none';
+
+            showStatus('info',
+                `<div class="spinner"></div><span>Processing image, please wait&hellip;</span>`
+            );
+
+            const formData = new FormData();
+            formData.append('file', selectedFile);
+
+            let data;
+            try {
+                const response = await fetch('/api/process', {
+                    method: 'POST',
+                    body: formData
+                });
+                data = await response.json();
+
+                if (!response.ok) {
+                    const msg = data.detail || `Server error (${response.status})`;
+                    showStatus('error', `<span>&#x2715; ${escHtml(msg)}</span>`);
+                    processBtn.disabled = false;
+                    return;
+                }
+            } catch (err) {
+                showStatus('error', `<span>&#x2715; Network error: ${escHtml(err.message)}</span>`);
+                processBtn.disabled = false;
+                return;
+            }
+
+            const emailOk = data.email_status === 'sent';
+            showStatus('success',
+                `<span>&#x2713; All 3 images generated successfully.</span>`
+            );
+
+            renderResults(emailOk, data.email_status);
+            processBtn.disabled = false;
+        });
+
+        const OUTPUT_META = [{
+            key: 'silhouette',
+            label: 'Silhouette',
+            file: 'silhouette.png',
+            desc: 'Solid filled shape'
+        }, {
+            key: 'border',
+            label: 'Border',
+            file: 'border.png',
+            desc: 'Edge outline only'
+        }, {
+            key: 'grayscale',
+            label: 'Grayscale',
+            file: 'grayscale.png',
+            desc: 'Standard grayscale'
+        }, ];
+
+        function renderResults(emailOk, emailStatus) {
+            previewsGrid.innerHTML = '';
+
+            OUTPUT_META.forEach(({
+                label,
+                file,
+                desc
+            }) => {
+                const url = `/outputs/${file}?t=${Date.now()}`;
+                const card = document.createElement('div');
+                card.className = 'preview-card';
+                card.innerHTML = `
+        <div class="img-wrap">
+          <img src="${url}" alt="${escHtml(label)}" onerror="this.src=''" />
+        </div>
+        <div class="card-footer">
+          <span class="card-label">${escHtml(label)}</span>
+          <a class="dl-btn" href="${url}" download="${escHtml(file)}">Download</a>
+        </div>`;
+                previewsGrid.appendChild(card);
+            });
+
+            if (emailOk) {
+                emailBadge.className = 'email-badge sent';
+                emailBadge.innerHTML = '&#x2713; Email with attachments sent successfully.';
+            } else {
+                emailBadge.className = 'email-badge failed';
+                emailBadge.innerHTML = `&#x26A0; Email not sent &mdash; ${escHtml(emailStatus)}`;
+            }
+
+            resultsSection.style.display = 'block';
+            resultsSection.classList.add('show-results');
+            resultsSection.scrollIntoView({
+                behavior: 'smooth',
+                block: 'start'
+            });
+        }
+
+        function escHtml(str) {
+            return String(str)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;');
+        }
+    </script>
+</body>
+
+</html>
